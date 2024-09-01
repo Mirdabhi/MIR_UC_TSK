@@ -1,6 +1,94 @@
 const User = require("../models/user");
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
+const env = require('dotenv');
+const {sendmail} = require("./nodemailer")
 
-async function HandleGetAll(req, res) {
+env.config();
+const Salt = process.env.Salt; 
+const JWT_SECRET = process.env.jwt;
+
+async function HandleAddUser(req, res) {
+  const { email, password } = req.body;
+
+    try {
+      
+        let user = await User.findOne({ email });
+        if (user) {
+            return res.status(400).send('User already exists. Please login.');
+        }
+
+        // Directly hash the password with salt rounds
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Create a new user with hashed password
+        user = new User({
+            email,
+            password: hashedPassword
+        });
+
+        // Save the user to the database
+        await user.save();
+
+        // After signup, redirect to the login page
+        sendmail(email);
+        res.status(201).send('User registered successfully. Please login.');
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server error');
+    }
+};
+
+async function HandleVerify(req, res) {
+
+
+  const { email, password } = req.body;
+
+    try {
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found. Please sign up.' });
+        }
+        const isMatch = await bcrypt.compare(password, user.password);
+
+        if (!isMatch) {
+            return res.status(401).json({ message: 'Invalid credentials.' });
+        }
+
+        const token = jwt.sign(
+            { userpass: user.password, email: user.email }, 
+            JWT_SECRET,
+            { expiresIn: '1h' }
+        );
+        return res.status(200).json({
+            message: 'Login successful!',
+            token
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+async function HandleAuth(req , res){
+  res.json({ message: 'You can access the app!' });
+}
+
+
+
+
+module.exports = {HandleAddUser , HandleVerify , HandleAuth};
+
+
+
+
+
+
+
+/*async function HandleGetAll(req, res) {
   try {
     const users = await User.find({});
     res.status(200).json(users);
@@ -57,4 +145,4 @@ async function HandleDeleteUser(req, res) {
   }
 }
 
-module.exports = { HandleGetAll, HandleAdd, HandleUpdateUser, HandleDeleteUser };
+module.exports = { HandleGetAll, HandleAdd, HandleUpdateUser, HandleDeleteUser };*/
