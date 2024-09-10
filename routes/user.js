@@ -2,11 +2,13 @@ const express = require('express');
 const router = express.Router();
 const {HandleAddUser , HandleAuth , HandleVerify}= require("../controllers/user");
 const{authmiddleware} = require("../middlewares/auth");
+const upload = require('../middlewares/multer');
 
 
 router.get('/login', HandleVerify);
 router.post('/signup', HandleAddUser);
-router.get('/auth',authmiddleware,HandleAuth );
+router.patch('/profilepic',authmiddleware,upload.single('profileImage'),HandleAuth );
+//router.get('/profilepic',authmiddleware,HandleAuth );
 
 
 

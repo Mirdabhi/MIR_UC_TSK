@@ -1,9 +1,11 @@
 const User = require("../models/user");
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const nodemailer = require('nodemailer');
 const env = require('dotenv');
-const {sendmail} = require("./nodemailer")
+const {sendmail} = require("../utils/nodemailer")
+const cloudinary = require("../utils/cloudnary");
+const fs = require('fs');
+const path = require('path')
 
 env.config();
 const Salt = process.env.Salt; 
@@ -41,108 +43,88 @@ async function HandleAddUser(req, res) {
 };
 
 async function HandleVerify(req, res) {
-
-
   const { email, password } = req.body;
 
-    try {
-        const user = await User.findOne({ email });
+  try {
+    // Find the user by email
+    const user = await User.findOne({ email });
 
-        if (!user) {
-            return res.status(404).json({ message: 'User not found. Please sign up.' });
-        }
-        const isMatch = await bcrypt.compare(password, user.password);
-
-        if (!isMatch) {
-            return res.status(401).json({ message: 'Invalid credentials.' });
-        }
-
-        const token = jwt.sign(
-            { userpass: user.password, email: user.email }, 
-            JWT_SECRET,
-            { expiresIn: '1h' }
-        );
-        return res.status(200).json({
-            message: 'Login successful!',
-            token
-        });
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server error' });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found. Please sign up.' });
     }
-};
 
-async function HandleAuth(req , res){
-  res.json({ message: 'You can access the app!' });
+    // Compare the provided password with the stored hashed password
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Invalid credentials.' });
+    }
+
+    // Create a JWT token with the user's email and user ID
+    const token = jwt.sign(
+      { email: user.email, _id: user._id }, // Payload with email and user ID for security
+      JWT_SECRET,                          // Secret key from environment variables
+      { expiresIn: '1h' }                  // Token expiration time
+    );
+
+    // Send the token back to the client
+    return res.status(200).json({
+      message: 'Login successful!',
+      token: token
+    });
+
+  } catch (error) {
+    console.error('Error in HandleVerify:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
 }
+
+// Handle profile image upload/update
+async function HandleAuth(req, res) {
+  const userEmail = req.user.email;  // Use email from the decoded JWT
+  try {
+      // Find the user by email
+      const user = await User.findOne({ email: userEmail });
+      if (!user) {
+          return res.status(404).json({ message: 'User not found.' });
+      }
+
+      // Proceed with profile picture handling logic...
+      // Ensure the file is uploaded
+      if (!req.file) {
+          return res.status(400).json({ message: 'No file uploaded.' });
+      }
+
+      // Upload the image to Cloudinary
+      const result = await cloudinary.uploader.upload(req.file.path, {
+          folder: 'profile_pictures',  // Optional folder name in Cloudinary
+      });
+
+      // Delete the local file after uploading to Cloudinary
+      fs.unlinkSync(req.file.path);
+
+      // If the user already has a profile image, delete the old one from Cloudinary
+      if (user.profileImageUrl) {
+          const oldImagePublicId = path.basename(user.profileImageUrl, path.extname(user.profileImageUrl));
+          await cloudinary.uploader.destroy(`profile_pictures/${oldImagePublicId}`);
+      }
+
+      // Update the user's profile image URL in the database
+      user.profileImageUrl = result.secure_url;
+      await user.save();
+
+      res.status(200).json({
+          message: 'Profile image uploaded/updated successfully.',
+          imageUrl: user.profileImageUrl,
+      });
+  } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Server error' });
+  }
+}
+
 
 
 
 
 module.exports = {HandleAddUser , HandleVerify , HandleAuth};
-
-
-
-
-
-
-
-/*async function HandleGetAll(req, res) {
-  try {
-    const users = await User.find({});
-    res.status(200).json(users);
-  } catch (error) {
-    res.status(404).json({ error: "Failed to retrieve Users" });
-  }
-}
-
-async function HandleAdd(req, res) {
-  try {
-    const { name, house } = req.body;
-    const newUser = new User({
-      name,
-      house
-    });
-    await newUser.save();
-    res.status(200).send({ message: "User created successfully" });
-  } catch (error) {
-    res.status(404).send(error);
-  }
-}
-
-async function HandleUpdateUser(req, res) {
-  try {
-    const name = req.params.name;
-    const updatedUser = await User.findOneAndUpdate(
-      { name: name },
-      { name: req.body.name, house: req.body.house }, 
-      { new: true }
-    );
-
-    if (!updatedUser) {
-      return res.status(404).send({ message: "User not found" });
-    }
-
-    res.status(200).send({ message: "User updated successfully", updatedUser });
-  } catch (error) {
-    res.status(404).send(error);
-  }
-}
-
-async function HandleDeleteUser(req, res) {
-  try {
-    const name = req.params.name;
-    const deletedUser = await User.findOneAndDelete({ name: name });
-
-    if (deletedUser) {
-      res.status(200).json({ message: "User deleted successfully" });
-    } else {
-      res.status(404).json({ error: "User not found" });
-    }
-  } catch (err) {
-    res.status(404).json({ error: "Error deleting User", err });
-  }
-}
-
-module.exports = { HandleGetAll, HandleAdd, HandleUpdateUser, HandleDeleteUser };*/
