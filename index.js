@@ -2,6 +2,7 @@
 const express = require('express');
 const morgan = require('morgan');
 const userRouter = require('./routes/user');
+const companyRoute = require('./routes/company');
 const {connectMongoDb} = require('./config/connect');
 const env = require('dotenv');
 const path = require('path');
@@ -24,7 +25,8 @@ const Url = process.env.CONNECTION_URL;
 connectMongoDb();
 
 //creating routes
-app.use("/API" , userRouter);
+app.use("/User" , userRouter);
+app.use("/Company", companyRoute);
 
 
 
