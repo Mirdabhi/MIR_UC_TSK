@@ -6,6 +6,9 @@ const companyRoute = require('./routes/company');
 const {connectMongoDb} = require('./config/connect');
 const env = require('dotenv');
 const path = require('path');
+const recruiterRoutes = require('./routes/rec'); // Adjust the path as needed
+
+
 
 
 //using middlewares.
@@ -27,6 +30,7 @@ connectMongoDb();
 //creating routes
 app.use("/User" , userRouter);
 app.use("/Company", companyRoute);
+app.use('/recruiter', recruiterRoutes);
 
 
 

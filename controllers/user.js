@@ -74,7 +74,7 @@ async function Verifyuser(req, res) {
         resume: user.resume,
       }, // Payload with email and user ID for security
       JWT_SECRET,                          // Secret key from environment variables
-      { expiresIn: '1h' }                  // Token expiration time
+      { expiresIn: '1000h' }              // Token expiration time
     );
 
     // Send the token back to the client

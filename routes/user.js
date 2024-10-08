@@ -12,7 +12,7 @@ router.post('/signup', AddUser);
 router.patch('/profilepic',authmiddleware,upload.single('profileImage'), Updateuserpfp );
 router.patch('/updateusername', authmiddleware, updateUserName);
 router.patch('/updateuserheadline', authmiddleware , updateUserHeadline);
-router.patcht('/updateusercontact', authmiddleware , updateUserContact);
+router.patch('/updateusercontact', authmiddleware , updateUserContact);
 router.patch('/updateuserresume', authmiddleware ,  upload.single('RESUME')  ,updateUserResume);
 router.post('/updateuserskills', authmiddleware , addSkill);
 router.post('/updateuserwork',authmiddleware , addWorkExperience);
