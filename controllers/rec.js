@@ -5,7 +5,8 @@ const env = require('dotenv');
 const fs = require('fs');
 const path = require('path');
 const Company = require("../models/company");
-
+const Job = require('../models/job');
+const Application = require('../models/applcation');
 
 env.config();
 async function AddREC(req, res) {
@@ -167,4 +168,96 @@ async function AddREC(req, res) {
   }
   
 
-  module.exports = {AddREC , Verifyrec , updateRecruiterPosition , updateRecruiterName , deleteRecruiter};
+  async function addJob(req, res) {
+    // Extract the job details from the request body
+    const { title, description, requirements, salary_range, location, job_type } = req.body;
+
+    try {
+        // Extract recruiter and company IDs from the JWT token payload
+        const recruiterId = req.user._id;        // `req.user` is populated by the JWT middleware with recruiter info
+        const companyId = req.user.company;      // Assuming `company` was saved in JWT as company ID
+
+        // Create a new job with details from the request and IDs from the token
+        const newJob = new Job({
+            title,
+            description,
+            requirements,
+            salary_range,
+            location,
+            job_type,
+            recruiter_id: recruiterId,
+            company_id: companyId
+        });
+
+        // Save the new job to the database
+        await newJob.save();
+
+        // Send a success response with the new job details
+        res.status(201).json({
+            message: 'Job created successfully',
+            job: newJob
+        });
+    } catch (error) {
+        console.error('Error in addJob function:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+}
+async function deleteJob(req, res) {
+  const { jobId } = req.body; // Job ID is expected in the URL parameters
+  const recruiterId = req.user._id; // Recruiter ID from the JWT token
+
+  try {
+      // Find the job by ID and ensure the recruiter ID matches the authenticated user
+      const job = await Job.findOne({ _id: jobId, recruiter_id: recruiterId });
+      
+      if (!job) {
+          return res.status(404).json({ message: 'Job not found or unauthorized' });
+      }
+
+      // Delete the job
+      await job.remove();
+
+      res.status(200).json({ message: 'Job deleted successfully' });
+  } catch (error) {
+      console.error('Error in deleteJob function:', error);
+      res.status(500).json({ message: 'Server error' });
+  }
+}
+
+
+async function updateApplicationStatusByJobId(req, res) {
+  const userId = req.body; // User ID from the JWT token
+  const { jobId } = req.body; // Job ID from URL parameter
+  const { status } = req.body; // New status from request body
+// email bhi use kar saktehai for searching.
+  // Check for valid status values
+  const validStatuses = ['accepted', 'rejected'];
+  if (!validStatuses.includes(status)) {
+      return res.status(400).json({ message: 'Invalid status. Valid statuses are: pending, accepted, rejected.' });
+  }
+
+  try {
+      // Find the application for the specified job and user
+      const application = await Application.findOne({ job_id: jobId, user_id: userId });
+
+      if (!application) {
+          return res.status(404).json({ message: 'Application not found for this job and user.' });
+      }
+
+      // Update the status of the application
+      application.status = status;
+      await application.save();
+
+      res.status(200).json({
+          message: 'Application status updated successfully',
+          application
+      });
+  } catch (error) {
+      console.error('Error in updateApplicationStatusByJobId function:', error);
+      res.status(500).json({ message: 'Server error' });
+  }
+}
+
+  
+
+  module.exports = {AddREC , Verifyrec , updateRecruiterPosition , updateRecruiterName , deleteRecruiter , addJob , deleteJob , updateApplicationStatusByJobId};

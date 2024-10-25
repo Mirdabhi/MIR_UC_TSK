@@ -9,6 +9,7 @@ const path = require('path')
 const Education = require("../models/userEducation");
 const Skills = require("../models/userSkill");
 const WorkExperience = require("../models/userPreviousWork");
+const Application = require('../models/applcation');
 
 
 env.config();
@@ -454,6 +455,68 @@ async function DeleteUser(req, res) {
   }
 }
 
+async function createApplication(req, res) {
+  const userId = req.user._id; // User ID from the JWT token
+  const { jobId } = req.body; // Job ID provided by the user
+
+  try {
+      // Create a new application with user ID and job ID
+      const newApplication = new Application({
+          user_id: userId,
+          job_id: jobId,
+          status: 'pending' // Default status
+      });
+
+      await newApplication.save(); // Save to the database
+
+      res.status(201).json({
+          message: 'Application created successfully',
+          application: newApplication
+      });
+  } catch (error) {
+      console.error('Error in createApplication function:', error);
+      res.status(500).json({ message: 'Server error' });
+  }
+}
+
+async function deleteApplication(req, res) {
+  const userId = req.user._id; // User ID from the JWT token
+  const { applicationId } = req.body; // Application ID provided in the URL
+
+  try {
+      // Find and delete the application if it belongs to the user
+      const application = await Application.findOneAndDelete({ _id: applicationId, user_id: userId });
+
+      if (!application) {
+          return res.status(404).json({ message: 'Application not found or unauthorized' });
+      }
+
+      res.status(200).json({ message: 'Application deleted successfully' });
+  } catch (error) {
+      console.error('Error in deleteApplication function:', error);
+      res.status(500).json({ message: 'Server error' });
+  }
+}
+
+async function getApplicationsByUser(req, res) {
+  const userId = req.user._id; // User ID from the JWT token
+
+  try {
+      // Find all applications by this user
+      const applications = await Application.find({ user_id: userId }).populate('job_id', 'title description');
+
+      if (applications.length === 0) {
+          return res.status(404).json({ message: 'No applications found for this user' });
+      }
+
+      res.status(200).json({ applications });
+  } catch (error) {
+      console.error('Error in getApplicationsByUser function:', error);
+      res.status(500).json({ message: 'Server error' });
+  }
+}
+
+
 
 
 
@@ -462,4 +525,5 @@ async function DeleteUser(req, res) {
 
 module.exports = { AddUser , Verifyuser , Updateuserpfp , 
    updateUserName , updateUserHeadline , updateUserContact , 
-   updateUserResume , addEducation , deleteEducation, addSkill , deleteSkill , addWorkExperience , deleteWorkExperience, DeleteUser};
+   updateUserResume , addEducation , deleteEducation, addSkill , deleteSkill , addWorkExperience , deleteWorkExperience, DeleteUser 
+  , createApplication , deleteApplication , getApplicationsByUser};

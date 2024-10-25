@@ -1,4 +1,5 @@
 const Company = require("../models/company");
+const Recruiter = require("../models/recr");
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const env = require('dotenv');
@@ -321,7 +322,7 @@ async function updateEstablishedDate(req, res) {
 
 async function deleteCompany(req, res) {
   const userEmail = req.user.email;  // Use email from the decoded JWT
-
+  const id = req.user._id;
   try {
       // Find the company by email
       const company = await Company.findOne({ email: userEmail });
@@ -329,6 +330,8 @@ async function deleteCompany(req, res) {
           return res.status(404).json({ message: 'Company not found.' });
       }
 
+
+      await Recruiter.deleteMany({ company_id: id });
       // Delete the company
       await company.remove();
 

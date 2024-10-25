@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const {AddUser , Verifyuser , Updateuserpfp , 
     updateUserName , updateUserHeadline , updateUserContact , 
-    updateUserResume , addEducation , deleteEducation, addSkill , deleteSkill , addWorkExperience , deleteWorkExperience, DeleteUser}= require("../controllers/user");
+    updateUserResume , addEducation , deleteEducation, addSkill , deleteSkill , addWorkExperience , deleteWorkExperience, DeleteUser
+    , createApplication , deleteApplication , getApplicationsByUser}= require("../controllers/user");
 const{authmiddleware} = require("../middlewares/auth");
 const upload = require('../middlewares/multer');
 
@@ -21,13 +22,9 @@ router.delete("/deleteUser", authmiddleware , DeleteUser);
 router.delete("/deleteskill", authmiddleware , deleteSkill);
 router.delete("/deleteWORKEXP", authmiddleware , deleteWorkExperience);
 router.delete("/deleteEDU", authmiddleware , deleteEducation);
-
-
-
-
-
-
-
+router.post('/createApplication',authmiddleware , createApplication);
+router.get('/getallapp', authmiddleware , getApplicationsByUser);
+router.delete("/deleteApplication", authmiddleware , deleteApplication);
 
 
 module.exports = router;
