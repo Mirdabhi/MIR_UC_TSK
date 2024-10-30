@@ -16,7 +16,7 @@ function sendmail(to){
     transporter.sendMail({
         to: to,
         subject: "you have sucessfully registered",
-        html : "yoyo"
+        html : "yoyo" 
     })
 }
 module.exports = { sendmail};

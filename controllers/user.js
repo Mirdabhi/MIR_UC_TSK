@@ -10,6 +10,8 @@ const Education = require("../models/userEducation");
 const Skills = require("../models/userSkill");
 const WorkExperience = require("../models/userPreviousWork");
 const Application = require('../models/applcation');
+const FollowerFollowing = require('../models/follower'); // Import FollowerFollowing model
+const Company = require('../models/company'); // Import Company model
 
 
 env.config();
@@ -516,9 +518,167 @@ async function getApplicationsByUser(req, res) {
   }
 }
 
+async function followCompany(req, res) {
+    const userId = req.user._id; // User ID from the JWT token
+    const { companyId } = req.body; // Company ID from URL parameter
+
+    try {
+        // Check if the company exists
+        const companyExists = await Company.findById(companyId);
+        if (!companyExists) {
+            return res.status(404).json({ message: 'Company not found.' });
+        }
+
+        // Check if the user is already following this company
+        const existingFollow = await FollowerFollowing.findOne({
+            follower_id: userId,
+            following_id: companyId,
+            followingModel: 'Company'
+        });
+
+        if (existingFollow) {
+            return res.status(400).json({ message: 'Already following this company.' });
+        }
+
+        // Create a new follow relationship
+        const newFollow = new FollowerFollowing({
+            follower_id: userId,
+            following_id: companyId,
+            followingModel: 'Company'
+        });
+
+        await newFollow.save();
+
+        res.status(201).json({
+            message: 'Successfully followed the company.',
+            follow: newFollow
+        });
+    } catch (error) {
+        console.error('Error in followCompany function:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+}
 
 
 
+async function followUser(req, res) {
+    const followerId = req.user._id; // Follower's user ID from JWT token
+    const { followingUserId } = req.body; // ID of the user to be followed from URL parameter
+
+    try {
+        // Check if the user to be followed exists
+        const userExists = await User.findById(followingUserId);
+        if (!userExists) {
+            return res.status(404).json({ message: 'User not found.' });
+        }
+
+        // Check if the follower is already following this user
+        const existingFollow = await FollowerFollowing.findOne({
+            follower_id: followerId,
+            following_id: followingUserId,
+            followingModel: 'User'
+        });
+
+        if (existingFollow) {
+            return res.status(400).json({ message: 'Already following this user.' });
+        }
+
+        // Create a new follow relationship
+        const newFollow = new FollowerFollowing({
+            follower_id: followerId,
+            following_id: followingUserId,
+            followingModel: 'User'
+        });
+
+        await newFollow.save();
+
+        res.status(201).json({
+            message: 'Successfully followed the user.',
+            follow: newFollow
+        });
+    } catch (error) {
+        console.error('Error in followUser function:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+}
+
+
+
+async function unfollow(req, res) {
+    const followerId = req.user._id; // Follower's user ID from JWT token
+    const { followingId, type } = req.body; // ID of the entity to be unfollowed and type (User or Company)
+
+    // Validate type parameter
+    if (!['User', 'Company'].includes(type)) {
+        return res.status(400).json({ message: 'Invalid type. Must be either User or Company.' });
+    }
+
+    try {
+        // Find the follow relationship based on followerId, followingId, and type
+        const followRelation = await FollowerFollowing.findOne({
+            follower_id: followerId,
+            following_id: followingId,
+            followingModel: type
+        });
+
+        if (!followRelation) {
+            return res.status(404).json({ message: `Not following this ${type.toLowerCase()}.` });
+        }
+
+        // Remove the follow relationship
+        await followRelation.remove();
+
+        res.status(200).json({
+            message: `Successfully unfollowed the ${type.toLowerCase()}.`
+        });
+    } catch (error) {
+        console.error('Error in unfollow function:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+}
+
+async function showallfollowers(req, res) {
+  const followerId = req.user._id; // Follower's user ID from JWT token
+ 
+  try {
+      // Find the follow relationship based on followerId, followingId, and type
+      const followRelation = await FollowerFollowing.find({
+          follower_id: followerId});
+
+      if (!followRelation) {
+          return res.status(404).json({ message: `Not followers` });
+      }
+
+      
+
+      res.status(200).json(followRelation);
+  } catch (error) {
+      console.error('Error in unfollow function:', error);
+      res.status(500).json({ message: 'Server error' });
+  }
+}
+
+
+async function showallfollowing(req, res) {
+  const following_id = req.user._id; // Follower's user ID from JWT token
+ 
+  try {
+      // Find the follow relationship based on followerId, followingId, and type
+      const followRelation = await FollowerFollowing.find({
+          following_id: following_id});
+
+      if (!followRelation) {
+          return res.status(404).json({ message: `Not followers` });
+      }
+
+      
+
+      res.status(200).json(following_id);
+  } catch (error) {
+      console.error('Error in unfollow function:', error);
+      res.status(500).json({ message: 'Server error' });
+  }
+}
 
 
 
@@ -526,4 +686,4 @@ async function getApplicationsByUser(req, res) {
 module.exports = { AddUser , Verifyuser , Updateuserpfp , 
    updateUserName , updateUserHeadline , updateUserContact , 
    updateUserResume , addEducation , deleteEducation, addSkill , deleteSkill , addWorkExperience , deleteWorkExperience, DeleteUser 
-  , createApplication , deleteApplication , getApplicationsByUser};
+  , createApplication , deleteApplication , getApplicationsByUser , followCompany , followUser , unfollow , showallfollowers , showallfollowing};

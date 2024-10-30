@@ -3,9 +3,10 @@ const router = express.Router();
 const {AddUser , Verifyuser , Updateuserpfp , 
     updateUserName , updateUserHeadline , updateUserContact , 
     updateUserResume , addEducation , deleteEducation, addSkill , deleteSkill , addWorkExperience , deleteWorkExperience, DeleteUser
-    , createApplication , deleteApplication , getApplicationsByUser}= require("../controllers/user");
+    , createApplication , deleteApplication , getApplicationsByUser, followCompany , followUser , unfollow , showallfollowers , showallfollowing}= require("../controllers/user");
 const{authmiddleware} = require("../middlewares/auth");
 const upload = require('../middlewares/multer');
+const {getAllBlogsByAuthor , createBlog , deleteBlog } = require('../controllers/blog');
 
 
 router.get('/login', Verifyuser);
@@ -25,7 +26,14 @@ router.delete("/deleteEDU", authmiddleware , deleteEducation);
 router.post('/createApplication',authmiddleware , createApplication);
 router.get('/getallapp', authmiddleware , getApplicationsByUser);
 router.delete("/deleteApplication", authmiddleware , deleteApplication);
-
+router.get('/showallfollowers',authmiddleware , showallfollowers );
+router.get('/showallfollowing',authmiddleware , showallfollowing );
+router.delete('/unfollow' , authmiddleware , unfollow);
+router.post('/followcompany',  authmiddleware , followCompany );
+router.post('/followuser',  authmiddleware , followUser);
+router.get('/getallblogs',authmiddleware, getAllBlogsByAuthor);
+router.post('/createblog', authmiddleware, createBlog);
+router.delete('/deleteblog' , authmiddleware , deleteBlog);
 
 module.exports = router;
  

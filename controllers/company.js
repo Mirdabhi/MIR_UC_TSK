@@ -7,6 +7,8 @@ const {sendmail} = require("../utils/nodemailer")
 const cloudinary = require("../utils/cloudnary");
 const fs = require('fs');
 const path = require('path')
+const FollowerFollowing = require('../models/follower'); // Import FollowerFollowing model
+const User = require("../models/user");
 
 env.config();
 const JWT_SECRET = process.env.jwt;
